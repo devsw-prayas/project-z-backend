@@ -17,8 +17,9 @@ func main() {
 
 	r := gin.Default()
 
-	r.POST("/users", users.Register)
-	r.GET("/users", users.UserInfo)
+	r.POST("/api/users/register", users.Register)
+	r.POST("/api/users/login", users.Login)
+	r.GET("/api/users/me", users.UserInfo)
 
 	port := os.Getenv("PORT")
 	if port == "" {
