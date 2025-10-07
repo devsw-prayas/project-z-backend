@@ -1,10 +1,11 @@
-package users
+package services
 
 import (
 	_ "database/sql"
 	"net/http"
-
 	"os"
+	"project-z-backend/database"
+	"project-z-backend/models"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,16 +14,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type User struct {
-	ID        int64  `json:"id"`
-	Name      string `json:"name"`
-	Email     string `json:"email"`
-	Password  string `json:"password"`
-	CreatedAt string `json:"created_at"`
-}
+var DB = database.DB
 
 func Register(c *gin.Context) {
-	var u User
+	var u models.User
 	if err := c.ShouldBindJSON(&u); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -50,7 +45,7 @@ func Register(c *gin.Context) {
 
 func UserInfo(c *gin.Context) {
 	idParam := c.Param("id")
-	var u User
+	var u models.User
 	err := DB.QueryRow(
 		`SELECT id, username, email, created_at FROM users WHERE id = $1`,
 		idParam,
@@ -77,7 +72,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	var u User
+	var u models.User
 	var passwordHash string
 	err := DB.QueryRow(
 		`SELECT id, username, email, password_hash FROM users WHERE username = $1`,

@@ -1,23 +1,23 @@
-package users
+package database
 
 import (
 	"database/sql"
 	"log"
-	"os"
+	"project-z-backend/config"
+
 
 	_ "github.com/lib/pq"
 )
 
 var DB *sql.DB
 
-func InitDB() {
-	connStr := os.Getenv("DATABASE_URL")
-	if connStr == "" {
+func InitDB(config *config.Config) {
+	if config.DB_URL == "" {
 		log.Fatal("DATABASE_URL is not set")
 	}
 
 	var err error
-	DB, err = sql.Open("postgres", connStr)
+	DB, err = sql.Open("postgres", config.DB_URL)
 	if err != nil {
 		log.Fatal("Failed to open DB:", err)
 	}
