@@ -7,5 +7,4 @@ import (
 func SetupAPIRoutes(router *gin.Engine) {
 	api := router.Group("/api")
 	setupUserRoutes(api)
-
 }

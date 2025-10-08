@@ -5,7 +5,7 @@ import (
 	"project-z-backend/config"
 	"project-z-backend/database"
 	"project-z-backend/routes"
-
+	"project-z-backend/migrations"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,6 +15,8 @@ func main() {
 
 	database.InitDB(cfg)
 	defer database.DB.Close()
+
+	migrations.SetupMigration()
 
 	router := gin.Default()
 	routes.SetupAPIRoutes(router)
