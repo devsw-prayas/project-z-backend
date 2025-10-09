@@ -10,6 +10,6 @@ func setupUserRoutes(api *gin.RouterGroup) {
 	
 	api.POST("/user/register", services.Register)
 	api.POST("/user/login", services.Login)
-	api.GET("/users/me", services.UserInfo)
+	api.GET("/user/me", services.UserInfo)
 
 }

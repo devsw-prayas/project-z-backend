@@ -2,6 +2,7 @@ package services
 
 import (
 	_ "database/sql"
+	"log"
 	"net/http"
 	"os"
 	"project-z-backend/database"
@@ -14,9 +15,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var DB = database.DB
-
 func Register(c *gin.Context) {
+	log.Println("Register handler called")
+
 	var u models.User
 	if err := c.ShouldBindJSON(&u); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -29,12 +30,18 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	err = DB.QueryRow(
-		`INSERT INTO users (username, email, password_hash, created_at) VALUES ($1, $2, $3, $4) RETURNING id, created_at`,
+	// log.Printf("User data received: %+v\n", u)
+
+	err = database.DB.QueryRow(
+		`INSERT INTO users (username, email, password_hash, created_at)
+     	VALUES ($1, $2, $3, $4)
+     	RETURNING id, created_at`,
 		u.Name, u.Email, string(hashedPassword), time.Now(),
 	).Scan(&u.ID, &u.CreatedAt)
+
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert user"})
+		log.Println("DB insert error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -44,11 +51,18 @@ func Register(c *gin.Context) {
 }
 
 func UserInfo(c *gin.Context) {
-	idParam := c.Param("id")
+
+	log.Println("UserInfo handler called")
+
 	var u models.User
-	err := DB.QueryRow(
-		`SELECT id, username, email, created_at FROM users WHERE id = $1`,
-		idParam,
+	if err := c.ShouldBindJSON(&u); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := database.DB.QueryRow(
+		`SELECT id, username, email, created_at FROM users WHERE username = $1`,
+		u.Name,
 	).Scan(&u.ID, &u.Name, &u.Email, &u.CreatedAt)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
@@ -63,6 +77,8 @@ func UserInfo(c *gin.Context) {
 }
 
 func Login(c *gin.Context) {
+
+	log.Println("Login handler called")
 	var req struct {
 		Name     string `json:"name"`
 		Password string `json:"password"`
@@ -74,7 +90,7 @@ func Login(c *gin.Context) {
 
 	var u models.User
 	var passwordHash string
-	err := DB.QueryRow(
+	err := database.DB.QueryRow(
 		`SELECT id, username, email, password_hash FROM users WHERE username = $1`,
 		req.Name,
 	).Scan(&u.ID, &u.Name, &u.Email, &passwordHash)
