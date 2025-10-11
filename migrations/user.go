@@ -1,23 +1,22 @@
 package migrations
+
 import (
 	"log"
+	"os"
 	"project-z-backend/database"
 )
-
 
 func UsersMigration() {
 	if database.DB == nil {
 		log.Fatal("Database not initialized")
 	}
 
-	_, err := database.DB.Exec(`
-	CREATE TABLE IF NOT EXISTS users (
-		id BIGSERIAL PRIMARY KEY,
-		username VARCHAR(50) UNIQUE NOT NULL,
-		email VARCHAR(255) UNIQUE NOT NULL,
-		password_hash VARCHAR(255) NOT NULL,
-		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-	);`)
+	bytefile, err := os.ReadFile("database/users.sql")
+	if err != nil {
+		log.Fatal("Failed to read users.sql file:", err)
+	}
+
+	database.DB.Exec(string(bytefile))
 	if err != nil {
 		log.Fatal("Failed to create users table:", err)
 	}
