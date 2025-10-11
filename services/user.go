@@ -2,32 +2,24 @@ package services
 
 import (
 	_ "database/sql"
+	"errors"
 	"log"
-	"net/http"
 	"os"
 	"project-z-backend/database"
 	"project-z-backend/models"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func Register(c *gin.Context) {
+func Register(u models.User) (models.User, error) {
 	log.Println("Register handler called")
-
-	var u models.User
-	if err := c.ShouldBindJSON(&u); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
-		return
+		return models.User{}, err
 	}
 
 	// log.Printf("User data received: %+v\n", u)
@@ -41,67 +33,45 @@ func Register(c *gin.Context) {
 
 	if err != nil {
 		log.Println("DB insert error:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		return models.User{}, err
 	}
 
 	u.Password = ""
 
-	c.JSON(http.StatusCreated, u)
+	return u, nil
 }
 
-func UserInfo(c *gin.Context) {
+func UserInfo(u models.User) (models.User, error) {
 
 	log.Println("UserInfo handler called")
-
-	var u models.User
-	if err := c.ShouldBindJSON(&u); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
 
 	err := database.DB.QueryRow(
 		`SELECT id, username, email, created_at FROM users WHERE username = $1`,
 		u.Name,
 	).Scan(&u.ID, &u.Name, &u.Email, &u.CreatedAt)
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
-		}
-		return
+		return models.User{}, err
 	}
 	u.Password = ""
-	c.JSON(http.StatusOK, u)
+
+	return u, nil
 }
 
-func Login(c *gin.Context) {
+func Login(u models.User) (string, error) {
 
 	log.Println("Login handler called")
-	var req struct {
-		Name     string `json:"name"`
-		Password string `json:"password"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
 
-	var u models.User
 	var passwordHash string
 	err := database.DB.QueryRow(
 		`SELECT id, username, email, password_hash FROM users WHERE username = $1`,
-		req.Name,
+		u.Name,
 	).Scan(&u.ID, &u.Name, &u.Email, &passwordHash)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username"})
-		return
+		return "", errors.New("Invalid username or password")
 	}
 
-	if bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(req.Password)) != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid password"})
-		return
+	if bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(u.Password)) != nil {
+		return "", errors.New("Invalid username or password")
 	}
 
 	// Generate JWT token
@@ -113,12 +83,8 @@ func Login(c *gin.Context) {
 	secret := os.Getenv("JWT_SECRET")
 	tokenString, err := token.SignedString([]byte(secret))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
-		return
+		return "", errors.New("Failed to generate token")
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"token": tokenString,
-		"user":  u,
-	})
+	return tokenString, nil
 }
