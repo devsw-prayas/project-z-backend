@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	_ "database/sql"
 	"errors"
+	"log"
 	"time"
 
 	"project-z-backend/database"

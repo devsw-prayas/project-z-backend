@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 	"project-z-backend/handlers"
 	"project-z-backend/models"
