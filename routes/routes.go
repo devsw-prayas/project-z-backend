@@ -12,4 +12,5 @@ func SetupAPIRoutes(router *gin.Engine) {
 	api := router.Group("/api")
 	api.GET("/health", handlers.HealthHandler)
 	setupUserRoutes(api)
+	setupProblemRoutes(api)
 }
