@@ -4,8 +4,9 @@ import (
 	"log"
 	"project-z-backend/config"
 	"project-z-backend/database"
-	"project-z-backend/routes"
 	"project-z-backend/migrations"
+	"project-z-backend/routes"
+
 	"github.com/gin-gonic/gin"
 )
 
