@@ -1,14 +1,17 @@
 package services
 
 import (
+	"database/sql"
 	_ "database/sql"
 	"errors"
 	"log"
+	"net/http"
 	"os"
 	"project-z-backend/database"
 	"project-z-backend/models"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
@@ -23,6 +26,21 @@ func Register(u models.User) (models.User, error) {
 	}
 
 	// log.Printf("User data received: %+v\n", u)
+
+	// Check if user exists
+	var exists bool
+	err = database.DB.QueryRow(` select exists(select 1 from users where username = $1 or email = $2)`,
+		u.Name, u.Email,
+	).Scan(&exists)
+
+	if err != nil {
+		log.Println("Error checking existing user:", err)
+		return models.User{}, errors.New("database error")
+	}
+
+	if exists {
+		return models.User{}, errors.New("username or email already exists")
+	}
 
 	err = database.DB.QueryRow(
 		`INSERT INTO users (username, email, password_hash, created_at)
@@ -50,6 +68,9 @@ func UserInfo(u models.User) (models.User, error) {
 		u.Name,
 	).Scan(&u.ID, &u.Name, &u.Email, &u.CreatedAt)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.User{}, errors.New("user not found")
+		}
 		return models.User{}, err
 	}
 	u.Password = ""
@@ -87,4 +108,8 @@ func Login(u models.User) (string, error) {
 	}
 
 	return tokenString, nil
+}
+
+func HealthCheck(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }

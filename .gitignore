@@ -57,3 +57,7 @@ __pycache__/
 
 # Node-related (if you have frontend in same repo)
 node_modules/
+
+# Docker testing
+docker-compose.yml
+Dockerfile
