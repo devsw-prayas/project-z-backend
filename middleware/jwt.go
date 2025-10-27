@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -30,8 +31,8 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-
-		secret := cfg.jwtSecret
+		fmt.Println(tokenString)
+		secret := cfg.JWT_SECRET
 		if len(secret) == 0 {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "JWT secret not set"})
 			c.Abort()
@@ -42,7 +43,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrSignatureInvalid
 			}
-			return secret, nil
+			return []byte(secret), nil
 		})
 
 		if err != nil {
@@ -64,7 +65,19 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		c.Set("user_id", claims["user_id"])
+		var userID int64
+		switch v := claims["user_id"].(type) {
+		case float64:
+			userID = int64(v)
+		case int64:
+			userID = v
+		case int:
+			userID = int64(v)
+		default:
+			userID = 0
+		}
+
+		c.Set("user_id", userID)
 		c.Set("email", claims["email"])
 
 		c.Next()
@@ -73,7 +86,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 func CreateJWT(userID int64, email string) (string, error) {
 	cfg := config.LoadConfig()
-	secret := cfg.jwtSecret
+	secret := cfg.JWT_SECRET
 
 	if secret == "" {
 		return "", errors.New("JWT_SECRET not configured")
@@ -82,7 +95,7 @@ func CreateJWT(userID int64, email string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": userID,
 		"email":   email,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+		"exp":     time.Now().Add(time.Hour * 24 * 5).Unix(),
 	})
 
 	tokenString, err := token.SignedString([]byte(secret))

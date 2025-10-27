@@ -15,6 +15,10 @@ import (
 )
 
 func Register(u models.User) (models.User, error) {
+	if u.Name == "" || u.Email == "" || u.Password == "" {
+		return models.User{}, errors.New("username, email, and password are required")
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return models.User{}, err
@@ -34,16 +38,15 @@ func Register(u models.User) (models.User, error) {
 	return u, nil
 }
 
-func UserInfo(u models.User) (models.User, error) {
-
+func UserInfo(userID int64) (models.User, error) {
+	var u models.User
 	err := database.DB.QueryRow(
-		`SELECT id, username, email, created_at FROM users WHERE username = $1`,
-		u.ID,
+		`SELECT id, username, email, created_at FROM users WHERE id = $1`,
+		userID,
 	).Scan(&u.ID, &u.Name, &u.Email, &u.CreatedAt)
 	if err != nil {
 		return models.User{}, err
 	}
-
 	return u, nil
 }
 
