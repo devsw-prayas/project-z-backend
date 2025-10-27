@@ -21,5 +21,5 @@ func UsersMigration() {
 		log.Fatal("Failed to create users table:", err)
 	}
 
-	log.Println("✅ Database migrations ran successfully")
+	log.Println("Database migrations ran successfully")
 }
