@@ -70,3 +70,60 @@ func GetProblemByID(c *gin.Context) {
 		"data": problem,
 	})
 }
+
+func SubmitSolution(c *gin.Context) {
+	log.Println("SubmitSolution controller called")
+
+	var submission models.Submission
+	if err := c.ShouldBindJSON(&submission); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Get user ID from context (set by auth middleware)
+	userID := c.GetInt64("user_id")
+	if userID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id not found in context"})
+		return
+	}
+
+	submission.UserID = userID
+	submission.Status = "Queued"
+
+	result, err := services.CreateSubmission(submission)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Submission created successfully",
+		"data":    result,
+	})
+}
+
+func GetSubmission(c *gin.Context) {
+	log.Println("GetSubmission controller called")
+
+	submissionIDStr := c.Param("submission_id")
+	submissionID, err := strconv.ParseInt(submissionIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid submission ID"})
+		return
+	}
+
+	submission, err := services.GetSubmissionByID(submissionID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if submission == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Submission not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": submission,
+	})
+}
