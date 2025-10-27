@@ -8,8 +8,9 @@ import (
 )
 
 type Config struct {
-	Port         string
-	DB_URL       string
+	PORT       string
+	DB_URL     string
+	JWT_SECRET string
 }
 
 func LoadConfig() *Config {
@@ -18,8 +19,9 @@ func LoadConfig() *Config {
 	}
 
 	config := &Config{
-		Port:		getEnv("PORT", "8080"),
-		DB_URL: 	getEnv("DATABASE_URL",""),
+		PORT:       getEnv("PORT", "8080"),
+		DB_URL:     getEnv("DATABASE_URL", ""),
+		JWT_SECRET: getEnv("JWT_SECRET", ""),
 	}
 
 	return config
@@ -30,4 +32,4 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
-} 
+}

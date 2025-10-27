@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"log"
 	"net/http"
+	"project-z-backend/handlers"
 	"project-z-backend/models"
 	"project-z-backend/services"
 
@@ -10,50 +10,53 @@ import (
 )
 
 func Register(c *gin.Context) {
-	log.Println("Register controller called")
-
 	var u models.User
+
 	if err := c.ShouldBindJSON(&u); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	user, err := services.Register(u)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		handlers.HandleError(c, http.StatusBadRequest, err.Error())
+
 	}
 
-	c.JSON(http.StatusOK, user)
+	user, err := services.Register(u)
+
+	if err != nil {
+		handlers.HandleError(c, http.StatusInternalServerError, err.Error())
+
+	}
+
+	handlers.HandleSuccess(c, http.StatusOK, user)
 }
 
-func UserInfo(c *gin.Context) {
-	log.Println("UserInfo controller called")
-	var u models.User
-	if err := c.ShouldBindJSON(&u); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+func Me(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		handlers.HandleError(c, http.StatusUnauthorized, "User ID not found in context")
 		return
 	}
-	user, err := services.UserInfo(u)
+
+	user, err := services.UserInfo(userID.(int64))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		handlers.HandleError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, user)
+
+	handlers.HandleSuccess(c, http.StatusOK, user)
 }
 
 func Login(c *gin.Context) {
-	log.Println("Login controller called")
 	var u models.User
+
 	if err := c.ShouldBindJSON(&u); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		handlers.HandleError(c, http.StatusBadRequest, err.Error())
 	}
+
 	token, err := services.Login(u)
+
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-		return
+		handlers.HandleError(c, http.StatusUnauthorized, err.Error())
 	}
-	c.JSON(http.StatusOK, gin.H{"token": token})
+
+	handlers.HandleSuccess(c, http.StatusOK, gin.H{"token": token})
 }
 
 func GetUserStats(c *gin.Context) {
